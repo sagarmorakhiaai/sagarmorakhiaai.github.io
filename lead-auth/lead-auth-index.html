@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Lead Auth Bridge</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        color: #172033;
+        margin: 32px;
+        line-height: 1.5;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 12px;
+      }
+      .panel {
+        max-width: 460px;
+        border: 1px solid #d7dde8;
+        border-radius: 8px;
+        padding: 20px;
+      }
+      .status {
+        margin-top: 16px;
+        padding: 10px 12px;
+        background: #f6f8fb;
+        border-left: 4px solid #5b6b85;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <h1>Lead Auth Bridge</h1>
+      <p>Sign in with your Gmail account to continue.</p>
+      <div id="button"></div>
+      <div id="status" class="status">Waiting for Google sign-in...</div>
+    </div>
+
+    <script>
+      function getClientId() {
+        var params = new URLSearchParams(window.location.search);
+        return params.get('client_id') || '';
+      }
+
+      function setStatus(message) {
+        document.getElementById('status').textContent = message;
+      }
+
+      function handleCredentialResponse(response) {
+        if (!response || !response.credential) {
+          setStatus('No credential returned by Google.');
+          return;
+        }
+
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'lead-auth-token',
+            credential: response.credential
+          }, '*');
+          setStatus('Sign-in complete. Returning to Lead Management...');
+          setTimeout(function() { window.close(); }, 600);
+        } else {
+          setStatus('Sign-in complete, but no opener window was found.');
+        }
+      }
+
+      window.onload = function() {
+        var clientId = getClientId();
+        if (!clientId) {
+          setStatus('Missing client_id in URL.');
+          return;
+        }
+
+        google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleCredentialResponse,
+          auto_select: false,
+          cancel_on_tap_outside: false
+        });
+
+        google.accounts.id.renderButton(
+          document.getElementById('button'),
+          {
+            type: 'standard',
+            size: 'large',
+            theme: 'outline',
+            text: 'signin_with',
+            shape: 'rectangular',
+            logo_alignment: 'left'
+          }
+        );
+      };
+    </script>
+  </body>
+</html>
