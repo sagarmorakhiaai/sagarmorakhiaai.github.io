@@ -45,6 +45,22 @@
         return params.get('client_id') || '';
       }
 
+      function getOpenerOrigin() {
+        var params = new URLSearchParams(window.location.search);
+        return params.get('opener_origin') || '';
+      }
+
+      function isAllowedOpenerOrigin(origin) {
+        try {
+          var url = new URL(origin);
+          if (url.protocol !== 'https:') return false;
+          return url.hostname === 'script.google.com' ||
+            /(^|[.-])script\.googleusercontent\.com$/.test(url.hostname);
+        } catch (err) {
+          return false;
+        }
+      }
+
       function setStatus(message) {
         document.getElementById('status').textContent = message;
       }
@@ -56,10 +72,16 @@
         }
 
         if (window.opener) {
+          var openerOrigin = getOpenerOrigin();
+          if (!isAllowedOpenerOrigin(openerOrigin)) {
+            setStatus('Unable to verify the Lead Management portal origin.');
+            return;
+          }
           window.opener.postMessage({
             type: 'lead-auth-token',
             credential: response.credential
           }, '*');
+          }, openerOrigin);
           setStatus('Sign-in complete. Returning to Lead Management...');
           setTimeout(function() { window.close(); }, 600);
         } else {
@@ -71,6 +93,10 @@
         var clientId = getClientId();
         if (!clientId) {
           setStatus('Missing client_id in URL.');
+          return;
+        }
+        if (!isAllowedOpenerOrigin(getOpenerOrigin())) {
+          setStatus('Missing or invalid Lead Management portal origin.');
           return;
         }
 
