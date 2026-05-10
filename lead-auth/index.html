@@ -80,7 +80,6 @@
           window.opener.postMessage({
             type: 'lead-auth-token',
             credential: response.credential
-          }, '*');
           }, openerOrigin);
           setStatus('Sign-in complete. Returning to Lead Management...');
           setTimeout(function() { window.close(); }, 600);
